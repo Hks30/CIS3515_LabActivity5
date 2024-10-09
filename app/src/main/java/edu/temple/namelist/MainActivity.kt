@@ -9,10 +9,13 @@ import android.widget.BaseAdapter
 import android.widget.Button
 import android.widget.Spinner
 import android.widget.TextView
+import android.widget.Toast
 
 class MainActivity : AppCompatActivity() {
 
-    lateinit var names: List<String>
+    lateinit var names: MutableList<String> // Change to MutableList
+    lateinit var customAdapter: CustomAdapter // Store a reference to the adapter
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
@@ -22,23 +25,39 @@ class MainActivity : AppCompatActivity() {
         val spinner = findViewById<Spinner>(R.id.spinner)
         val nameTextView = findViewById<TextView>(R.id.textView)
 
-        with (spinner) {
-            adapter = CustomAdapter(names, this@MainActivity)
-            onItemSelectedListener = object: OnItemSelectedListener {
-                override fun onItemSelected(p0: AdapterView<*>?, p1: View?, p2: Int, p3: Long) {
-                    p0?.run {
-                        nameTextView.text = getItemAtPosition(p2).toString()
-                    }
-                }
+        // Initialize and set the custom adapter
+        customAdapter = CustomAdapter(names, this)
+        spinner.adapter = customAdapter
 
-                override fun onNothingSelected(p0: AdapterView<*>?) {
+        spinner.onItemSelectedListener = object : OnItemSelectedListener {
+            override fun onItemSelected(p0: AdapterView<*>?, p1: View?, p2: Int, p3: Long) {
+                // Check if the position is valid before accessing it
+                if (p2 < names.size) {
+                    nameTextView.text = names[p2] // Use names instead of getItemAtPosition
                 }
             }
-        }
 
+            override fun onNothingSelected(p0: AdapterView<*>?) {
+            }
+        }
+        //2nd bug
         findViewById<View>(R.id.deleteButton).setOnClickListener {
-            (names as MutableList).removeAt(spinner.selectedItemPosition)
-            (spinner.adapter as BaseAdapter).notifyDataSetChanged()
+            val selectedPosition = spinner.selectedItemPosition
+            if (selectedPosition >= 0 && selectedPosition < names.size) {
+                names.removeAt(selectedPosition)
+                customAdapter.notifyDataSetChanged() // adapter to the data change
+
+                if (names.isNotEmpty()) {
+                    // reset selection to the first namr
+                    spinner.setSelection(0)
+                    nameTextView.text = names[0]
+                } else {
+                    // if no names are left
+                    spinner.setSelection(-1)
+                    nameTextView.text = ""
+                    Toast.makeText(this, "No names left", Toast.LENGTH_SHORT).show() // Inform the user
+                }
+            }
         }
 
     }
